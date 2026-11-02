@@ -1,30 +1,22 @@
-# Boaring Adventure
+# BoarTracker
 
-A lightweight WoW 1.12.1 / OctoWoW addon that shows **enemy boar spawn points only** on the world map and minimap using pfQuest data.
+Standalone boar spawn tracker for **WoW 1.12.1 / OctoWoW**. No pfQuest required.
 
-Hovering a pin uses pfQuest's normal NPC tooltip information. `pfQuest-turtle` is supported for custom Octo/Turtle boars.
-
-## Requirements
-
-- `pfQuest`
-- `pfQuest-turtle` optional, recommended for OctoWoW
+- Shows individual boar spawn points on the **world map** and **minimap**.
+- Hover a marker for **name, level, NPC ID, respawn time and coordinates**.
+- Includes vanilla and Octo/Turtle boars, including Forest Boars and Elder Forest Boars.
 
 ## Install
 
-Place the repository folder at:
+Place the repo folder at:
 
 `World of Warcraft\Interface\AddOns\BoarTracker`
 
-The folder must be named `BoarTracker` so WoW can load `BoarTracker.toc`.
-
-After logging in, `/boar status` should confirm that the addon loaded and indexed boars.
-
 ## Commands
 
-- `/boar all` — show all boar spawns
-- `/boar <name>` — show matching boars
-- `/boar info <name or id>` — show level, NPC ID, zones and spawn count
-- `/boar list [text]` — list indexed boars
-- `/boar clean` — clear pins
-- `/boar filter on|off` — toggle strict boar-only pfQuest map filtering
-- `/boar status` — show addon/database status
+`/bt` — status  
+`/bt map` — toggle world-map pins  
+`/bt mini` — toggle minimap pins  
+`/bt on` / `/bt off` — enable or disable both
+
+Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
