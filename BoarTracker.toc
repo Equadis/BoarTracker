@@ -1,0 +1,10 @@
+## Interface: 11200
+## Title: |cffd28b42Boaring Adventure|r
+## Author: Equadis
+## Notes: Boar-only spawn tracking and NPC details powered by pfQuest.
+## Version: 0.1.1
+## Dependencies: pfQuest
+## OptionalDeps: pfQuest-turtle
+## SavedVariables: BoaringAdventureDB
+
+BoaringAdventure.lua
