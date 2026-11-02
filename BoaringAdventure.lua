@@ -14,6 +14,8 @@ BA.ready = false
 BA.originalAddNode = nil
 BA.filterInstalled = false
 
+-- Named boars whose creature names do not contain "boar" or "goretusk".
+-- These are deliberately explicit so similarly named non-boar NPCs are not caught.
 local namedBoars = {
   ["longsnout"] = true,
   ["bellygrub"] = true,
@@ -25,7 +27,9 @@ local namedBoars = {
 }
 
 local function msg(text)
-  if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. text) end
+  if DEFAULT_CHAT_FRAME then
+    DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. text)
+  end
 end
 
 local function trim(text)
@@ -39,19 +43,26 @@ end
 
 local function isExcludedName(name)
   local n = lower(name)
+
+  -- Quilboar are humanoids, not boar beasts.
   if string.find(n, "quilboar", 1, true) then return true end
+
+  -- Utility/pet/spirit entries should not be treated as grindable enemy boars.
   if n == "tamed boar" then return true end
   if n == "boar spirit" then return true end
   if string.find(n, "piglet", 1, true) then return true end
+
   return false
 end
 
 local function isBoarName(name)
   if not name or isExcludedName(name) then return false end
+
   local n = lower(name)
   if namedBoars[n] then return true end
   if string.find(n, "goretusk", 1, true) then return true end
   if string.find(n, "boar", 1, true) then return true end
+
   return false
 end
 
@@ -62,13 +73,17 @@ local function hasCoords(data)
 end
 
 local function isFriendly(id)
-  if pfDatabase and pfDatabase.IsFriendly then return pfDatabase:IsFriendly(id) end
+  if pfDatabase and pfDatabase.IsFriendly then
+    return pfDatabase:IsFriendly(id)
+  end
   return false
 end
 
 local function countCoords(coords)
   local count = 0
-  if coords then for _ in pairs(coords) do count = count + 1 end end
+  if coords then
+    for _ in pairs(coords) do count = count + 1 end
+  end
   return count
 end
 
@@ -82,8 +97,11 @@ end
 function BA:BuildIndex()
   self.boars = {}
   self.byid = {}
+
   if not pfDB or not pfDB["units"] then return 0 end
 
+  -- Classify against English names so detection remains stable even if the client locale changes.
+  -- pfQuest-turtle patches its custom English unit names into this same table when installed.
   local names = pfDB["units"]["enUS"] or pfDB["units"]["loc"] or {}
   local data = pfDB["units"]["data"] or {}
 
@@ -119,11 +137,14 @@ end
 
 function BA:InstallBoarOnlyFilter()
   if self.filterInstalled or not pfMap or not pfMap.AddNode then return end
+
   self.originalAddNode = pfMap.AddNode
   local original = self.originalAddNode
 
   pfMap.AddNode = function(frame, meta)
-    if BoaringAdventureDB and BoaringAdventureDB.boarOnly and not BA:IsOurMeta(meta) then return end
+    if BoaringAdventureDB and BoaringAdventureDB.boarOnly and not BA:IsOurMeta(meta) then
+      return
+    end
     return original(frame, meta)
   end
 
@@ -132,22 +153,34 @@ end
 
 function BA:RemoveBoarOnlyFilter()
   if not self.filterInstalled then return end
-  if pfMap and self.originalAddNode then pfMap.AddNode = self.originalAddNode end
+  if pfMap and self.originalAddNode then
+    pfMap.AddNode = self.originalAddNode
+  end
   self.filterInstalled = false
 end
 
 function BA:ClearOtherNodes()
   if not pfMap or not pfMap.nodes or not pfMap.DeleteNode then return end
+
   local remove = {}
   for addon in pairs(pfMap.nodes) do
-    if addon ~= ADDON then table.insert(remove, addon) end
+    if addon ~= ADDON then
+      table.insert(remove, addon)
+    end
   end
-  for _, addon in pairs(remove) do pfMap:DeleteNode(addon) end
+
+  for _, addon in pairs(remove) do
+    pfMap:DeleteNode(addon)
+  end
 end
 
 function BA:ClearBoars()
-  if pfMap and pfMap.DeleteNode then pfMap:DeleteNode(ADDON) end
-  if pfMap and pfMap.UpdateNodes then pfMap:UpdateNodes() end
+  if pfMap and pfMap.DeleteNode then
+    pfMap:DeleteNode(ADDON)
+  end
+  if pfMap and pfMap.UpdateNodes then
+    pfMap:UpdateNodes()
+  end
 end
 
 function BA:Matches(entry, query)
@@ -161,6 +194,7 @@ end
 
 function BA:ShowBoars(query, jumpToBestMap)
   if not self.ready then return end
+
   self:ClearBoars()
 
   local maps = {}
@@ -176,7 +210,9 @@ function BA:ShowBoars(query, jumpToBestMap)
     end
   end
 
-  if pfMap and pfMap.UpdateNodes then pfMap:UpdateNodes() end
+  if pfMap and pfMap.UpdateNodes then
+    pfMap:UpdateNodes()
+  end
 
   if jumpToBestMap and matches > 0 and pfDatabase.GetBestMap and pfMap.ShowMapID then
     local best = pfDatabase:GetBestMap(maps)
@@ -184,129 +220,179 @@ function BA:ShowBoars(query, jumpToBestMap)
   end
 
   if query and query ~= "" then
-    msg(string.format("Showing %d boar type(s), %d recorded spawn point(s) matching |cffffffff%s|r.", matches, spawnCount, query))
-  end
-end
-
-function BA:GetZones(entry)
-  local zones = {}
-  local seen = {}
-  if not entry or not entry.coords then return zones end
-
-  for _, coord in pairs(entry.coords) do
-    local zone = coord[3]
-    if zone and not seen[zone] then
-      seen[zone] = true
-      local name = pfMap and pfMap.GetMapNameByID and pfMap:GetMapNameByID(zone) or tostring(zone)
-      table.insert(zones, name or tostring(zone))
+    if matches == 0 then
+      msg("No boars matched |cffffffff" .. query .. "|r.")
+    else
+      msg("Showing |cffffffff" .. matches .. "|r boar type(s), |cffffffff" .. spawnCount .. "|r recorded spawn point(s).")
     end
   end
-
-  table.sort(zones)
-  return zones
 end
 
-function BA:Info(query)
+function BA:PrintInfo(query)
   query = trim(query)
   if query == "" then
-    msg("Usage: |cffffffff/boar info <name or npc id>|r")
+    msg("Usage: |cffffffff/boar info <name or NPC id>|r")
     return
   end
 
   local found = 0
   for _, entry in pairs(self.boars) do
     if self:Matches(entry, query) then
-      local zones = self:GetZones(entry)
-      local zoneText = table.concat(zones, ", ")
-      msg(string.format("|cffffffff%s|r — level %s, NPC %d, %d spawn point(s)%s", entry.name, tostring(entry.lvl), entry.id, entry.spawns, zoneText ~= "" and ", " .. zoneText or ""))
       found = found + 1
+      msg("|cffffffff" .. entry.name .. "|r  |cffaaaaaa[NPC " .. entry.id .. "]|r  Level |cffffcc00" .. tostring(entry.lvl) .. "|r  Spawns |cffffffff" .. entry.spawns .. "|r")
+
+      local zones = {}
+      for _, coord in pairs(entry.coords) do
+        local zid = coord[3]
+        if zid then zones[zid] = (zones[zid] or 0) + 1 end
+      end
+
+      local zoneText = ""
+      for zid, count in pairs(zones) do
+        local zname = (pfDB["zones"] and pfDB["zones"]["loc"] and pfDB["zones"]["loc"][zid]) or ("Zone " .. zid)
+        zoneText = zoneText .. (zoneText ~= "" and ", " or "") .. zname .. " (" .. count .. ")"
+      end
+      if zoneText ~= "" then
+        msg("  |cffaaaaaa" .. zoneText .. "|r")
+      end
+
+      if found >= 10 then
+        msg("More matches exist; use a more specific name.")
+        break
+      end
     end
   end
 
-  if found == 0 then msg("No indexed enemy boar matched |cffffffff" .. query .. "|r.") end
+  if found == 0 then
+    msg("No boars matched |cffffffff" .. query .. "|r.")
+  end
 end
 
-function BA:List(query)
+function BA:PrintList(query)
   query = trim(query)
+  local total = 0
   local shown = 0
+
   for _, entry in pairs(self.boars) do
-    if query == "" or self:Matches(entry, query) then
-      msg(string.format("|cffffffff%s|r — lvl %s — NPC %d — %d spawn(s)", entry.name, tostring(entry.lvl), entry.id, entry.spawns))
-      shown = shown + 1
+    if self:Matches(entry, query) then
+      total = total + 1
+      if shown < 30 then
+        shown = shown + 1
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cffd28b42%3d|r  |cffffffff%s|r  |cffaaaaaaLv %s, %d spawns|r", entry.id, entry.name, tostring(entry.lvl), entry.spawns))
+      end
     end
   end
-  msg(string.format("%d boar type(s) listed.", shown))
+
+  msg("|cffffffff" .. total .. "|r matching boar type(s)." .. (total > shown and " Showing the first 30." or ""))
 end
 
-function BA:SetFilter(enabled)
-  BoaringAdventureDB.boarOnly = enabled and true or false
-  if BoaringAdventureDB.boarOnly then
+function BA:SetFilter(state)
+  if state then
+    BoaringAdventureDB.boarOnly = true
     self:InstallBoarOnlyFilter()
     self:ClearOtherNodes()
     self:ShowBoars(nil, false)
-    msg("Strict boar-only map filtering |cff55ff55enabled|r.")
+    msg("Boar-only map filtering |cff33ff33enabled|r.")
   else
-    msg("Strict boar-only map filtering |cffffaa55disabled|r. Existing boar pins remain until cleared.")
+    BoaringAdventureDB.boarOnly = false
+    self:RemoveBoarOnlyFilter()
+    msg("Boar-only map filtering |cffffcc00disabled|r. pfQuest may show its normal nodes again.")
+    if pfQuest and pfQuest.UpdateQuestlog then
+      pfQuest:UpdateQuestlog()
+    end
   end
 end
 
-function BA:Status()
-  msg(string.format("v%s — %d enemy boar type(s) indexed. Boar-only filter: %s.", self.version, table.getn(self.boars), BoaringAdventureDB.boarOnly and "ON" or "OFF"))
-end
-
-function BA:Help()
+function BA:PrintHelp()
   msg("Commands:")
-  msg("|cffffffff/boar all|r — show all boar spawns")
-  msg("|cffffffff/boar <name>|r — show matching boar spawns")
-  msg("|cffffffff/boar info <name/id>|r — boar details")
-  msg("|cffffffff/boar list [text]|r — list indexed boars")
-  msg("|cffffffff/boar clean|r — clear boar pins")
-  msg("|cffffffff/boar filter on|off — strict boar-only pfQuest map mode")
-  msg("|cffffffff/boar status|r — database status")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar all|r - show every enemy boar spawn")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar <name>|r - show only matching boars and open their best map")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar info <name>|r - print level, NPC id, zones and spawn count")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar list [text]|r - list known boar types")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar clean|r - remove Boaring Adventure pins")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar filter on|off|r - enable/disable strict boar-only pfQuest map filtering")
+  DEFAULT_CHAT_FRAME:AddMessage("  |cffffffff/boar status|r - show database/filter status")
 end
 
-SLASH_BOARINGADVENTURE1 = "/boar"
-SlashCmdList["BOARINGADVENTURE"] = function(input)
+function BA:HandleSlash(input)
   input = trim(input)
-  local _, _, command, rest = string.find(input, "^(%S+)%s*(.-)%s*$")
-  command = lower(command or "")
-  rest = rest or ""
+  if input == "" or input == "help" then
+    self:PrintHelp()
+    return
+  end
 
-  if command == "" or command == "help" then BA:Help()
-  elseif command == "all" then BA:ShowBoars(nil, false)
-  elseif command == "clean" then BA:ClearBoars(); msg("Boar pins cleared.")
-  elseif command == "info" then BA:Info(rest)
-  elseif command == "list" then BA:List(rest)
-  elseif command == "status" then BA:Status()
+  local command, rest
+  local _, _, c, r = string.find(input, "^(%S+)%s*(.-)$")
+  command = lower(c or input)
+  rest = trim(r or "")
+
+  if command == "all" then
+    self:ShowBoars(nil, false)
+    msg("Showing all |cffffffff" .. table.getn(self.boars) .. "|r known enemy boar types.")
+  elseif command == "clean" or command == "clear" then
+    self:ClearBoars()
+    msg("Boar pins cleared.")
+  elseif command == "list" then
+    self:PrintList(rest)
+  elseif command == "info" then
+    self:PrintInfo(rest)
   elseif command == "filter" then
-    local state = lower(trim(rest))
-    if state == "on" then BA:SetFilter(true)
-    elseif state == "off" then BA:SetFilter(false)
-    else msg("Usage: |cffffffff/boar filter on|off|r") end
-  else BA:ShowBoars(input, true) end
+    if lower(rest) == "on" then
+      self:SetFilter(true)
+    elseif lower(rest) == "off" then
+      self:SetFilter(false)
+    else
+      msg("Boar-only filter is " .. (BoaringAdventureDB.boarOnly and "|cff33ff33ON|r" or "|cffffcc00OFF|r") .. ". Use |cffffffff/boar filter on|off|r.")
+    end
+  elseif command == "status" then
+    msg("Version |cffffffff" .. self.version .. "|r - " .. table.getn(self.boars) .. " enemy boar types indexed. Filter: " .. (BoaringAdventureDB.boarOnly and "|cff33ff33ON|r" or "|cffffcc00OFF|r"))
+    if IsAddOnLoaded and IsAddOnLoaded("pfQuest-turtle") then
+      msg("pfQuest-turtle detected: custom Octo/Turtle boars are included.")
+    else
+      msg("pfQuest-turtle not detected: using pfQuest's base boar data only.")
+    end
+  else
+    -- Any other text is treated as a boar-name search.
+    self:ShowBoars(input, true)
+  end
 end
 
-local loader = CreateFrame("Frame")
-loader:RegisterEvent("PLAYER_ENTERING_WORLD")
-loader:SetScript("OnEvent", function()
-  if BA.ready then return end
+function BA:Initialize()
+  if self.ready then return end
+
   if not pfDB or not pfDatabase or not pfMap then
-    msg("|cffff5555pfQuest was not ready. Boaring Adventure requires pfQuest.|r")
+    msg("Could not initialise because pfQuest is not available.")
     return
   end
 
   BoaringAdventureDB = BoaringAdventureDB or {}
   if BoaringAdventureDB.boarOnly == nil then BoaringAdventureDB.boarOnly = true end
+  if BoaringAdventureDB.autoShow == nil then BoaringAdventureDB.autoShow = true end
 
-  local count = BA:BuildIndex()
-  BA.ready = true
+  local count = self:BuildIndex()
+  self.ready = true
 
   if BoaringAdventureDB.boarOnly then
-    BA:InstallBoarOnlyFilter()
-    BA:ClearOtherNodes()
+    self:InstallBoarOnlyFilter()
+    self:ClearOtherNodes()
   end
 
-  BA:ShowBoars(nil, false)
-  msg(string.format("Loaded v%s with %d enemy boar type(s). /boar for commands.", BA.version, count))
+  if BoaringAdventureDB.autoShow then
+    self:ShowBoars(nil, false)
+  end
+
+  msg("Loaded |cffffffff" .. count .. "|r enemy boar types. Type |cffffffff/boar|r for commands.")
+end
+
+SLASH_BOARINGADVENTURE1 = "/boar"
+SLASH_BOARINGADVENTURE2 = "/boaring"
+SlashCmdList["BOARINGADVENTURE"] = function(input)
+  BA:HandleSlash(input)
+end
+
+local loader = CreateFrame("Frame")
+loader:RegisterEvent("PLAYER_ENTERING_WORLD")
+loader:SetScript("OnEvent", function()
   this:UnregisterAllEvents()
+  BA:Initialize()
 end)
