@@ -8,7 +8,7 @@ local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.2.0"
+BT.version = "0.2.1"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -34,14 +34,17 @@ local function secondsText(seconds)
 end
 
 local function getMapZoneName()
+  -- World-map pins are zone-map only. On the Azeroth/continent views
+  -- GetCurrentMapZone() is 0; never fall back to the player's real zone
+  -- or those pins would be projected onto the higher-level map.
   local continent = GetCurrentMapContinent and GetCurrentMapContinent() or 0
   local zone = GetCurrentMapZone and GetCurrentMapZone() or 0
-  if continent and continent > 0 and zone and zone > 0 and GetMapZones then
-    local zones = { GetMapZones(continent) }
-    if zones[zone] then return zones[zone] end
+  if not continent or continent <= 0 or not zone or zone <= 0 or not GetMapZones then
+    return nil
   end
-  if GetRealZoneText then return GetRealZoneText() end
-  return nil
+
+  local zones = { GetMapZones(continent) }
+  return zones[zone]
 end
 
 local function getRealZoneName()
