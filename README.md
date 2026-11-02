@@ -11,9 +11,13 @@ Hovering a pin uses pfQuest's normal NPC tooltip information. `pfQuest-turtle` i
 
 ## Install
 
-Place the addon in:
+Place the repository folder at:
 
-`World of Warcraft\Interface\AddOns\BoaringAdventure`
+`World of Warcraft\Interface\AddOns\BoarTracker`
+
+The folder must be named `BoarTracker` so WoW can load `BoarTracker.toc`.
+
+After logging in, `/boar status` should confirm that the addon loaded and indexed boars.
 
 ## Commands
 
