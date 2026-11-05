@@ -8,7 +8,7 @@ local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.2.1"
+BT.version = "0.3.3"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -51,25 +51,31 @@ local function getRealZoneName()
   return GetRealZoneText and GetRealZoneText() or getMapZoneName()
 end
 
-local function minimapIndoor()
-  local tempzoom = 0
-  local state = 1
+local zoomState
+local probingZoom = false
+
+local function minimapIndoor(zoom)
   local inside = tonumber(GetCVar("minimapInsideZoom")) or 0
   local outside = tonumber(GetCVar("minimapZoom")) or 0
-
-  if outside == inside then
-    if inside >= 3 then
-      Minimap:SetZoom(Minimap:GetZoom() - 1)
-      tempzoom = 1
-    else
-      Minimap:SetZoom(Minimap:GetZoom() + 1)
-      tempzoom = -1
-    end
+  if zoomState and zoomState.zoom == zoom and zoomState.inside == inside and zoomState.outside == outside then
+    return zoomState.mode
   end
 
-  if inside == Minimap:GetZoom() then state = 0 end
-  Minimap:SetZoom(Minimap:GetZoom() + tempzoom)
-  return state
+  local mode
+  if inside == outside then
+    -- Vanilla exposes no indoor query. A temporary zoom change updates
+    -- the active CVar. Only probe when the zone or zoom settings change.
+    probingZoom = true
+    Minimap:SetZoom(zoom >= 3 and zoom - 1 or zoom + 1)
+    mode = tonumber(GetCVar("minimapInsideZoom")) ~= inside and 0 or 1
+    Minimap:SetZoom(zoom)
+    probingZoom = false
+  else
+    mode = inside == zoom and 0 or 1
+  end
+
+  zoomState = { zoom = zoom, inside = inside, outside = outside, mode = mode }
+  return mode
 end
 
 local function pinTooltip(pin, world)
@@ -112,6 +118,7 @@ end
 function BT:BuildIndex()
   self.zoneByName = {}
   self.zoneSpawns = {}
+  self.boarNames = {}
   if not BoarTrackerData or not BoarTrackerData.zones or not BoarTrackerData.boars then return end
 
   for zoneID, zone in pairs(BoarTrackerData.zones) do
@@ -120,6 +127,7 @@ function BT:BuildIndex()
   end
 
   for id, boar in pairs(BoarTrackerData.boars) do
+    self.boarNames[string.lower(boar.name)] = boar.name
     for zoneID, encoded in pairs(boar.points or {}) do
       if self.zoneSpawns[zoneID] then
         for point in string.gfind(encoded, "[^;]+") do
@@ -148,6 +156,7 @@ function BT:GetZoneID(name)
 end
 
 function BT:HideWorldPins(from)
+  if not from then self.worldLayout = nil end
   local start = from or 1
   for i = start, table.getn(self.worldPins) do
     if self.worldPins[i] then self.worldPins[i]:Hide() end
@@ -155,24 +164,30 @@ function BT:HideWorldPins(from)
 end
 
 function BT:HideMiniPins(from)
+  if not from then self.miniLayout = nil end
   local start = from or 1
-  for i = start, table.getn(self.miniPins) do
-    if self.miniPins[i] then self.miniPins[i]:Hide() end
+  for i = start, self.visibleMiniPins or 0 do
+    self.miniPins[i]:Hide()
   end
+  self.visibleMiniPins = start - 1
 end
 
 function BT:UpdateWorldMap()
   if not self.ready or not WorldMapFrame or not WorldMapButton then return end
-  if not BoarTrackerDB.showWorld then self:HideWorldPins(1); return end
+  if not BoarTrackerDB.showWorld then self:HideWorldPins(); return end
 
   local zoneName = getMapZoneName()
   local zoneID = self:GetZoneID(zoneName)
   local spawns = zoneID and self.zoneSpawns[zoneID]
-  if not spawns then self:HideWorldPins(1); return end
+  if not spawns then self:HideWorldPins(); return end
 
   local width = WorldMapButton:GetWidth()
   local height = WorldMapButton:GetHeight()
   if not width or width <= 0 or not height or height <= 0 then return end
+
+  local layout = self.worldLayout
+  if layout and layout.zone == zoneID and layout.width == width and layout.height == height then return end
+  self.worldLayout = { zone = zoneID, width = width, height = height }
 
   local i = 1
   for _, spawn in pairs(spawns) do
@@ -191,38 +206,46 @@ function BT:UpdateWorldMap()
 end
 
 function BT:UpdateMinimap()
-  if not self.ready or not Minimap then return end
-  if not BoarTrackerDB.showMini then self:HideMiniPins(1); return end
+  if not self.ready or not Minimap or probingZoom then return end
+  if not BoarTrackerDB.showMini then self:HideMiniPins(); return end
 
   local zoneName = getRealZoneName()
   local zoneID = self:GetZoneID(zoneName)
   local zone = zoneID and BoarTrackerData.zones[zoneID]
   local spawns = zoneID and self.zoneSpawns[zoneID]
-  if not zone or not spawns or not zone.width or zone.width <= 0 then self:HideMiniPins(1); return end
+  if not zone or not spawns or not zone.width or zone.width <= 0 then self:HideMiniPins(); return end
 
   local xPlayer, yPlayer = GetPlayerMapPosition("player")
-  if not xPlayer or not yPlayer or (xPlayer == 0 and yPlayer == 0) then self:HideMiniPins(1); return end
+  if not xPlayer or not yPlayer or (xPlayer == 0 and yPlayer == 0) then self:HideMiniPins(); return end
   xPlayer, yPlayer = xPlayer * 100, yPlayer * 100
 
   local zoom = Minimap:GetZoom()
-  local indoor = minimapIndoor()
-  local yards = minimapZoom[indoor] and minimapZoom[indoor][zoom]
-  if not yards then self:HideMiniPins(1); return end
+  local indoor = minimapIndoor(zoom)
+  local yards = minimapZoom[indoor][zoom]
+  if not yards then self:HideMiniPins(); return end
 
-  local xScale = yards / zone.width
-  local yScale = yards / zone.height
-  local xDraw = Minimap:GetWidth() / xScale / 100
-  local yDraw = Minimap:GetHeight() / yScale / 100
-  local halfW = Minimap:GetWidth() / 2
-  local halfH = Minimap:GetHeight() / 2
+  local width, height = Minimap:GetWidth(), Minimap:GetHeight()
+  local layout = self.miniLayout
+  if layout and layout.zone == zoneID and layout.x == xPlayer and layout.y == yPlayer
+    and layout.yards == yards and layout.width == width and layout.height == height then return end
+
+  if not layout then
+    layout = {}
+    self.miniLayout = layout
+  end
+  layout.zone, layout.x, layout.y = zoneID, xPlayer, yPlayer
+  layout.yards, layout.width, layout.height = yards, width, height
+
+  local xDraw = width * zone.width / yards / 100
+  local yDraw = height * zone.height / yards / 100
+  local radius = math.min(width, height) / 2 - 7
+  local radiusSquared = radius * radius
   local i = 1
 
   for _, spawn in pairs(spawns) do
     local xPos = (spawn.x - xPlayer) * xDraw
     local yPos = (spawn.y - yPlayer) * yDraw
-    local distance = math.sqrt(xPos * xPos + yPos * yPos)
-    local radius = math.min(halfW, halfH) - 7
-    if distance < radius then
+    if radius > 0 and xPos * xPos + yPos * yPos < radiusSquared then
       local pin = self.miniPins[i]
       if not pin then
         pin = makePin(Minimap, false)
@@ -249,12 +272,177 @@ function BT:Status()
   msg(string.format("v%s — %d boar types, %d recorded spawn points. Map %s, minimap %s.", self.version, types, spawns, BoarTrackerDB.showWorld and "ON" or "OFF", BoarTrackerDB.showMini and "ON" or "OFF"))
 end
 
+local function combatPattern(format)
+  local pattern = string.gsub(format, "(%W)", "%%%1")
+  pattern = string.gsub(pattern, "%%%%s", "(.+)")
+  return string.gsub(pattern, "%%%%d", "(%%d+)")
+end
+
+local slainPattern = "^" .. combatPattern(SELFKILLOTHER or "You have slain %s!") .. "$"
+-- The base message is also the prefix of the rested, group and raid variants.
+local xpPattern = "^" .. combatPattern(COMBATLOG_XPGAIN_FIRSTPERSON or "%s dies, you gain %d experience.")
+local xpWindow = 20
+local rateStart
+local rateXP = 0
+
+function BT:RecordBoarXP(message)
+  local _, _, name, amount = string.find(message or "", xpPattern)
+  local xp = tonumber(amount)
+  if not xp or xp <= 0 or not self.boarNames[string.lower(name)] then return end
+
+  local samples = BoarTrackerKills.xpSamples
+  if table.getn(samples) == xpWindow then table.remove(samples, 1) end
+  table.insert(samples, xp)
+  -- Measure from the first kill, so time spent before grinding is excluded.
+  if rateStart then
+    rateXP = rateXP + xp
+  else
+    rateStart = GetTime()
+  end
+end
+
+local function boarsToLevel()
+  local required = UnitXPMax("player")
+  if required <= 0 then return end
+
+  local remaining = math.max(0, required - UnitXP("player"))
+  local samples = BoarTrackerKills.xpSamples
+  local count = table.getn(samples)
+  if count == 0 then return remaining end
+
+  local total = 0
+  for i = 1, count do total = total + samples[i] end
+  return remaining, total / count, count, math.ceil(remaining * count / total)
+end
+
+function BT:ShowXP()
+  local remaining, average, count, estimate = boarsToLevel()
+  if not remaining then
+    msg("No XP is needed for another level.")
+  elseif not estimate then
+    msg(string.format("%d XP to next level. Kill a boar that grants XP to start the estimate.", remaining))
+  else
+    msg(string.format("%d XP to next level. Average %.1f XP per boar (%d sampled). About %d more boars.",
+      remaining, average, count, estimate))
+  end
+end
+
+local xpTracker
+local nextTrackerUpdate = 0
+
+local function stopTrackerDrag()
+  if not this.dragging then return end
+  this:StopMovingOrSizing()
+  this.dragging = nil
+
+  local x, y = this:GetCenter()
+  local parentX, parentY = UIParent:GetCenter()
+  BoarTrackerDB.trackerX, BoarTrackerDB.trackerY = x - parentX, y - parentY
+  this:ClearAllPoints()
+  this:SetPoint("CENTER", UIParent, "CENTER", BoarTrackerDB.trackerX, BoarTrackerDB.trackerY)
+end
+
+local function updateXPTracker()
+  if not BoarTrackerDB.showXPTracker then
+    if xpTracker then xpTracker:Hide() end
+    return
+  end
+
+  if not xpTracker then
+    xpTracker = CreateFrame("Frame", nil, UIParent)
+    xpTracker:SetWidth(330)
+    xpTracker:SetHeight(24)
+    xpTracker:SetPoint("CENTER", UIParent, "CENTER", BoarTrackerDB.trackerX or 0, BoarTrackerDB.trackerY or -120)
+    xpTracker:SetMovable(true)
+    xpTracker:SetClampedToScreen(true)
+    xpTracker:EnableMouse(true)
+    xpTracker:RegisterForDrag("LeftButton")
+    xpTracker:SetScript("OnDragStart", function()
+      if IsShiftKeyDown() then
+        this.dragging = true
+        this:StartMoving()
+      end
+    end)
+    xpTracker:SetScript("OnDragStop", stopTrackerDrag)
+    xpTracker:SetScript("OnHide", stopTrackerDrag)
+
+    local label = xpTracker:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    label:SetPoint("CENTER", xpTracker, "CENTER")
+    xpTracker.label = label
+  end
+
+  local remaining, _, _, estimate = boarsToLevel()
+  if not remaining then
+    xpTracker.label:SetText("No XP needed")
+  elseif not estimate then
+    xpTracker.label:SetText("Kill a boar to estimate")
+  else
+    local label = string.format("~%d %s to level up", estimate, estimate == 1 and "boar" or "boars")
+    local elapsed = rateStart and GetTime() - rateStart or 0
+    if rateXP > 0 and elapsed > 0 then
+      local perHour = rateXP * 3600 / elapsed
+      local minutes = math.ceil(remaining * elapsed / rateXP / 60)
+      local eta = minutes >= 60
+        and string.format("%dh %02dm", math.floor(minutes / 60), math.mod(minutes, 60))
+        or string.format("%dm", minutes)
+      label = string.format("%s  |  %.0f XP/h  |  ~%s", label, perHour, eta)
+    else
+      label = label .. "  |  Calculating XP/h and ETA"
+    end
+    xpTracker.label:SetText(label)
+  end
+  xpTracker:Show()
+end
+
+function BT:RecordKill(message)
+  local _, _, name = string.find(message or "", slainPattern)
+  if not name then return end
+  local key = string.lower(name)
+  local boar = self.boarNames[key]
+  if not boar then return end
+
+  local db = BoarTrackerKills
+  local count = (db.byName[key] or 0) + 1
+  db.byName[key] = count
+  db.total = db.total + 1
+  if math.mod(db.total, 50) == 0 then
+    msg(string.format("%d boars killed total (%d × %s).", db.total, count, boar))
+  end
+end
+
+function BT:ShowKills(name)
+  if name == "" then
+    if not UnitIsPlayer("target") then name = UnitName("target") end
+    if not name or name == "" then
+      msg(string.format("%d boars killed total. Target a boar or use /bt killed <name>.", BoarTrackerKills.total))
+      return
+    end
+  end
+
+  local key = string.lower(name)
+  local boar = self.boarNames[key]
+  if boar then
+    msg(string.format("%s killed: %d (%d boars total).", boar, BoarTrackerKills.byName[key] or 0, BoarTrackerKills.total))
+  else
+    msg("Unknown boar. Target a boar or use /bt killed <name>.")
+  end
+end
+
 SLASH_BOARTRACKER1 = "/boartracker"
 SLASH_BOARTRACKER2 = "/bt"
 SlashCmdList["BOARTRACKER"] = function(input)
   input = string.lower(input or "")
   input = string.gsub(input, "^%s*(.-)%s*$", "%1")
-  if input == "map" then
+  local _, _, name = string.find(input, "^killed%s+(.+)$")
+  if input == "killed" or name then
+    BT:ShowKills(name or "")
+  elseif input == "xp" then
+    BT:ShowXP()
+  elseif input == "tracker on" or input == "tracker off" then
+    BoarTrackerDB.showXPTracker = input == "tracker on"
+    updateXPTracker()
+    msg(BoarTrackerDB.showXPTracker and "XP tracker enabled. Shift-drag to move." or "XP tracker disabled.")
+  elseif input == "map" then
     BoarTrackerDB.showWorld = not BoarTrackerDB.showWorld
     BT:UpdateWorldMap()
     msg("World-map pins " .. (BoarTrackerDB.showWorld and "enabled." or "disabled."))
@@ -269,10 +457,10 @@ SlashCmdList["BOARTRACKER"] = function(input)
   elseif input == "off" then
     BoarTrackerDB.showWorld = false
     BoarTrackerDB.showMini = false
-    BT:HideWorldPins(1); BT:HideMiniPins(1); msg("Disabled.")
+    BT:HideWorldPins(); BT:HideMiniPins(); msg("Disabled.")
   else
     BT:Status()
-    msg("Commands: /bt map, /bt mini, /bt on, /bt off")
+    msg("Commands: /bt map, /bt mini, /bt on, /bt off, /bt killed [name], /bt xp, /bt tracker on/off")
   end
 end
 
@@ -282,24 +470,57 @@ frame:RegisterEvent("ZONE_CHANGED")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("MINIMAP_ZONE_CHANGED")
 frame:RegisterEvent("WORLD_MAP_UPDATE")
+frame:RegisterEvent("CHAT_MSG_COMBAT_HOSTILE_DEATH")
+frame:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN")
+frame:RegisterEvent("PLAYER_XP_UPDATE")
+frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:SetScript("OnEvent", function()
-  if event == "PLAYER_ENTERING_WORLD" then
+  if event == "CHAT_MSG_COMBAT_HOSTILE_DEATH" then
+    if BT.ready then BT:RecordKill(arg1) end
+    return
+  end
+  if event == "CHAT_MSG_COMBAT_XP_GAIN" then
+    if BT.ready then
+      BT:RecordBoarXP(arg1)
+      updateXPTracker()
+    end
+    return
+  end
+  if event == "PLAYER_XP_UPDATE" or event == "PLAYER_LEVEL_UP" then
+    if BT.ready then updateXPTracker() end
+    return
+  end
+  if probingZoom then return end
+  if event == "PLAYER_ENTERING_WORLD" and not BT.ready then
     BoarTrackerDB = BoarTrackerDB or {}
     if BoarTrackerDB.showWorld == nil then BoarTrackerDB.showWorld = true end
     if BoarTrackerDB.showMini == nil then BoarTrackerDB.showMini = true end
+    BoarTrackerKills = BoarTrackerKills or { total = 0, byName = {} }
+    BoarTrackerKills.xpSamples = BoarTrackerKills.xpSamples or {}
     BT:BuildIndex()
     BT.ready = true
+    updateXPTracker()
     msg("Loaded standalone v" .. BT.version .. ". No pfQuest required. /bt for status.")
   end
   if BT.ready then
     BT:UpdateWorldMap()
-    BT:UpdateMinimap()
+    if event ~= "WORLD_MAP_UPDATE" then
+      zoomState = nil
+      BT:UpdateMinimap()
+    end
   end
 end)
 
 frame:SetScript("OnUpdate", function()
   if not BT.ready then return end
-  if (this.nextMiniUpdate or 0) > GetTime() then return end
-  this.nextMiniUpdate = GetTime() + 0.25
+  if not BoarTrackerDB.showMini and not BoarTrackerDB.showXPTracker then return end
+  local now = GetTime()
+  if BoarTrackerDB.showXPTracker and rateXP > 0 and now >= nextTrackerUpdate then
+    nextTrackerUpdate = now + 5
+    updateXPTracker()
+  end
+  if not BoarTrackerDB.showMini then return end
+  if (this.nextMiniUpdate or 0) > now then return end
+  this.nextMiniUpdate = now + 0.25
   BT:UpdateMinimap()
 end)
