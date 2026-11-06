@@ -8,7 +8,7 @@ local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.3"
+BT.version = "0.3.4"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -284,12 +284,26 @@ local xpPattern = "^" .. combatPattern(COMBATLOG_XPGAIN_FIRSTPERSON or "%s dies,
 local xpWindow = 20
 local rateStart
 local rateXP = 0
+local lastCombatTime
+local rateIdleTimeout = 300
+
+local function resetIdleRate(now)
+  if rateStart and lastCombatTime and now - lastCombatTime >= rateIdleTimeout then
+    rateStart = nil
+    rateXP = 0
+    lastCombatTime = nil
+    return true
+  end
+end
 
 function BT:RecordBoarXP(message)
   local _, _, name, amount = string.find(message or "", xpPattern)
   local xp = tonumber(amount)
   if not xp or xp <= 0 or not self.boarNames[string.lower(name)] then return end
 
+  local now = GetTime()
+  resetIdleRate(now)
+  lastCombatTime = now
   local samples = BoarTrackerKills.xpSamples
   if table.getn(samples) == xpWindow then table.remove(samples, 1) end
   table.insert(samples, xp)
@@ -297,7 +311,7 @@ function BT:RecordBoarXP(message)
   if rateStart then
     rateXP = rateXP + xp
   else
-    rateStart = GetTime()
+    rateStart = now
   end
 end
 
@@ -465,6 +479,8 @@ SlashCmdList["BOARTRACKER"] = function(input)
 end
 
 local frame = CreateFrame("Frame")
+frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("ZONE_CHANGED")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
@@ -475,6 +491,14 @@ frame:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN")
 frame:RegisterEvent("PLAYER_XP_UPDATE")
 frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:SetScript("OnEvent", function()
+  if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+    local now = GetTime()
+    -- Check the old gap before new combat can overwrite its timestamp.
+    local reset = resetIdleRate(now)
+    lastCombatTime = now
+    if reset and BT.ready then updateXPTracker() end
+    return
+  end
   if event == "CHAT_MSG_COMBAT_HOSTILE_DEATH" then
     if BT.ready then BT:RecordKill(arg1) end
     return
@@ -513,8 +537,13 @@ end)
 
 frame:SetScript("OnUpdate", function()
   if not BT.ready then return end
-  if not BoarTrackerDB.showMini and not BoarTrackerDB.showXPTracker then return end
   local now = GetTime()
+  if UnitAffectingCombat("player") then
+    lastCombatTime = now
+  elseif resetIdleRate(now) then
+    updateXPTracker()
+  end
+  if not BoarTrackerDB.showMini and not BoarTrackerDB.showXPTracker then return end
   if BoarTrackerDB.showXPTracker and rateXP > 0 and now >= nextTrackerUpdate then
     nextTrackerUpdate = now + 5
     updateXPTracker()
