@@ -29,11 +29,15 @@ Place the repository folder at:
 - `/bt xp` — show current XP to next level, recent average XP per XP-awarding boar, and estimated boars remaining.
 - `/bt tracker on` / `/bt tracker off` — show or hide the on-screen levelling tracker. Hold **Shift** and drag to reposition it; visibility and position are saved.
 
-The on-screen tracker reports estimated boars remaining, boar XP/hour and estimated time to level. It samples up to 20 recent XP-awarding boars per character. XP/hour uses boar XP after the first qualifying kill of the current session and includes time between subsequent kills; that session rate resets on reload or relog. The average is based on XP **actually earned**, so half-XP and other XP modifiers are accounted for.
+The on-screen tracker reports estimated boars remaining, boar XP/hour and estimated time to level. It samples up to 20 recent XP-awarding boars per character. XP/hour uses boar XP after the first qualifying kill of the current session and includes time between subsequent kills; that session rate resets on reload, relog, or after five minutes out of combat. After an idle reset, the next XP-awarding boar starts a fresh measurement. Shorter breaks still count; kill totals and recent XP-per-boar samples are preserved. The average is based on XP **actually earned**, so half-XP and other XP modifiers are accounted for.
 
 Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
 
 ## Changelog
+
+### v0.3.4
+- Reset XP/hour and time-to-level after five minutes out of combat, including when the tracker is hidden.
+- Start a fresh measurement on the next XP-awarding boar while preserving kill totals and XP-per-boar samples.
 
 ### v0.3.3
 - Added boar XP per hour and estimated time to level to the on-screen tracker.
