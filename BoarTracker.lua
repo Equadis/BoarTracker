@@ -163,7 +163,7 @@ local function keepWorldMapPlayerOnTop()
   for _, child in pairs({ WorldMapFrame:GetChildren() }) do
     if child:IsObjectType("Model") and not child:GetName() then
       local model = child:GetModel()
-      if model and string.find(string.lower(model), "interface\minimap\minimaparrow", 1, true) then
+      if model and string.find(string.lower(model), "interface\\minimap\\minimaparrow", 1, true) then
         if child:GetFrameLevel() < 255 then child:SetFrameLevel(255) end
         return
       end
