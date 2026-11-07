@@ -71,3 +71,4 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 
 ### v0.2.1
 - Fixed boar icons appearing on Azeroth/continent maps. Map pins render only on individual zone maps.
+<!-- EqUpdater update icon test -->
