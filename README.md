@@ -35,6 +35,9 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 
 ## Changelog
 
+### v0.3.5
+- Keep the native minimap player arrow visible by hiding boar spawn pins while they overlap its centre. Nearby pins return as soon as they no longer overlap.
+
 ### v0.3.4
 - Reset XP/hour and time-to-level after five minutes out of combat, including when the tracker is hidden.
 - Start a fresh measurement on the next XP-awarding boar while preserving kill totals and XP-per-boar samples.
