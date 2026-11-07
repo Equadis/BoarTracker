@@ -5,10 +5,11 @@ local PREFIX = "|cffd28b42BoarTracker|r: "
 local ICON = "Interface\\Icons\\Ability_Hunter_Pet_Boar"
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
+local PLAYER_ICON_CLEARANCE = 18 -- Keep the minimap's native player arrow unobstructed.
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.4"
+BT.version = "0.3.5"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -245,7 +246,11 @@ function BT:UpdateMinimap()
   for _, spawn in pairs(spawns) do
     local xPos = (spawn.x - xPlayer) * xDraw
     local yPos = (spawn.y - yPlayer) * yDraw
-    if radius > 0 and xPos * xPos + yPos * yPos < radiusSquared then
+    local distanceSquared = xPos * xPos + yPos * yPos
+    -- Vanilla's player arrow is rendered below addon minimap frames. Suppress
+    -- spawn pins only while they overlap its centre, without moving their positions.
+    if radius > 0 and distanceSquared < radiusSquared
+      and distanceSquared > PLAYER_ICON_CLEARANCE * PLAYER_ICON_CLEARANCE then
       local pin = self.miniPins[i]
       if not pin then
         pin = makePin(Minimap, false)
