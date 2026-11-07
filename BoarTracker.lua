@@ -2,14 +2,14 @@
 -- Standalone boar spawn tracker for WoW 1.12.1 / OctoWoW.
 
 local PREFIX = "|cffd28b42BoarTracker|r: "
-local ICON = "Interface\\Icons\\Ability_Hunter_Pet_Boar"
+local ICON = "Interface\\AddOns\\BoarTracker\\Textures\\BoarPortrait" -- Shared 16x16 TGA portrait for world-map and minimap pins.
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
 local PLAYER_ICON_CLEARANCE = 18 -- Keep the minimap's native player arrow unobstructed.
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.6"
+BT.version = "0.3.7"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
