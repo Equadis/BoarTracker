@@ -36,6 +36,11 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 
 ## Changelog
 
+### v0.3.8
+- Remove the proximity exclusion that hid boar spawn pins within 18 pixels of the player.
+- Lower minimap boar pin frame levels to the bottom child level, below the higher-priority player marker, without changing their positions or visibility.
+- Keep the new boar portrait textures and tooltip difficulty colours.
+
 ### v0.3.7
 - Replace every world-map and minimap spawn icon with a small, circular Stonehide Boar portrait, cropped from an in-game portrait image.
 - Bundle the portrait as a 16×16, 32-bit TGA texture compatible with WoW 1.12.1; existing marker positions and sizes are unchanged.
@@ -45,7 +50,7 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 - For level ranges, use the highest listed mob level to show the toughest possible difficulty.
 
 ### v0.3.5
-- Keep the native minimap player arrow visible by hiding boar spawn pins while they overlap its centre. Nearby pins return as soon as they no longer overlap.
+- Earlier workaround for the minimap player arrow (nearby pins were hidden). Reverted in v0.3.8.
 
 ### v0.3.4
 - Reset XP/hour and time-to-level after five minutes out of combat, including when the tracker is hidden.

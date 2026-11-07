@@ -5,11 +5,10 @@ local PREFIX = "|cffd28b42BoarTracker|r: "
 local ICON = "Interface\\AddOns\\BoarTracker\\Textures\\BoarPortrait" -- Shared 16x16 TGA portrait for world-map and minimap pins.
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
-local PLAYER_ICON_CLEARANCE = 18 -- Keep the minimap's native player arrow unobstructed.
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.7"
+BT.version = "0.3.8"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -141,7 +140,10 @@ local function makePin(parent, world)
   pin:SetWidth(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:SetHeight(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:EnableMouse(true)
-  pin:SetFrameLevel((parent.GetFrameLevel and parent:GetFrameLevel() or 1) + 8)
+  -- Keep minimap spawn pins at the lowest child frame level instead of
+  -- putting them above the built-in player marker. World-map pins are unchanged.
+  local parentLevel = (parent.GetFrameLevel and parent:GetFrameLevel() or 1)
+  pin:SetFrameLevel(parentLevel + (world and 8 or 1))
 
   local tex = pin:CreateTexture(nil, "ARTWORK")
   tex:SetAllPoints(pin)
@@ -283,11 +285,8 @@ function BT:UpdateMinimap()
   for _, spawn in pairs(spawns) do
     local xPos = (spawn.x - xPlayer) * xDraw
     local yPos = (spawn.y - yPlayer) * yDraw
-    local distanceSquared = xPos * xPos + yPos * yPos
-    -- Vanilla's player arrow is rendered below addon minimap frames. Suppress
-    -- spawn pins only while they overlap its centre, without moving their positions.
-    if radius > 0 and distanceSquared < radiusSquared
-      and distanceSquared > PLAYER_ICON_CLEARANCE * PLAYER_ICON_CLEARANCE then
+    -- Only cull pins outside the minimap. NEVER hide a nearby boar spawn.
+    if radius > 0 and xPos * xPos + yPos * yPos < radiusSquared then
       local pin = self.miniPins[i]
       if not pin then
         pin = makePin(Minimap, false)
