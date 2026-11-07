@@ -9,7 +9,7 @@ local PLAYER_ICON_CLEARANCE = 18 -- Keep the minimap's native player arrow unobs
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.5"
+BT.version = "0.3.6"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -79,13 +79,50 @@ local function minimapIndoor(zoom)
   return mode
 end
 
+-- Classic mob "con" colours, calculated from the current player level.
+-- Spawn data provides level ranges, so use the highest possible level.
+local function mobDifficultyColor(levelText)
+  local playerLevel = UnitLevel("player")
+  if not playerLevel or playerLevel <= 0 then return 1, .82, .25 end
+
+  local text = tostring(levelText or "")
+  local _, _, low, high = string.find(text, "(%d+)%s*%-%s*(%d+)")
+  local mobLevel = tonumber(high) or tonumber(text)
+  if not mobLevel then
+    if text == "??" then return .65, .1, .1 end
+    return 1, .82, .25
+  end
+
+  local difference = mobLevel - playerLevel
+  if difference >= 10 then return .65, .1, .1 end -- Skull: dark red
+  if difference >= 5 then return 1, .15, .15 end -- Red
+  if difference >= 3 then return 1, .5, 0 end -- Orange
+  if difference >= -2 then return 1, .92, 0 end -- Yellow
+
+  -- Grey (no-XP) threshold scales with level in Vanilla WoW.
+  local greyLevel
+  if playerLevel <= 5 then
+    greyLevel = 0
+  elseif playerLevel <= 39 then
+    greyLevel = playerLevel - math.floor(playerLevel / 10) - 5
+  elseif playerLevel <= 59 then
+    greyLevel = playerLevel - math.floor(playerLevel / 5) - 1
+  else
+    greyLevel = playerLevel - 9
+  end
+
+  if mobLevel <= greyLevel then return .55, .55, .55 end -- Grey
+  return .2, .9, .2 -- Green
+end
+
 local function pinTooltip(pin, world)
   local data = pin.spawn
   if not data then return end
   local tip = world and WorldMapTooltip or GameTooltip
   if not tip then return end
   tip:SetOwner(pin, "ANCHOR_LEFT")
-  tip:SetText(data.name, 1, .82, .25)
+  local r, g, b = mobDifficultyColor(data.level)
+  tip:SetText(data.name, r, g, b)
   tip:AddDoubleLine("Level:", data.level or "?", .75, .75, .75, 1, 1, 1)
   tip:AddDoubleLine("NPC ID:", tostring(data.id or "?"), .75, .75, .75, 1, 1, 1)
   tip:AddDoubleLine("Respawn:", secondsText(data.respawn), .75, .75, .75, 1, 1, 1)
