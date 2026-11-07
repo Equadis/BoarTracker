@@ -4,6 +4,7 @@ Standalone boar spawn tracker for **WoW 1.12.1 / OctoWoW**. No pfQuest required.
 
 - Shows individual boar spawn points on **zone maps only** and on the **minimap**.
 - Hover a marker for **name, level, NPC ID, respawn time and coordinates**.
+- Boar names in tooltips are colour-coded by difficulty relative to your level (grey, green, yellow, orange, red and dark red/skull); ranged mobs use their upper level for a safer indicator.
 - Saves boar kills by name per character and posts a chat message every 50 total kills.
 - Includes vanilla and Octo/Turtle boars, including Forest Boars and Elder Forest Boars.
 - Estimates boars remaining, XP per hour and time to level from actual XP earned from boar kills (including modified XP rates).
@@ -34,6 +35,10 @@ The on-screen tracker reports estimated boars remaining, boar XP/hour and estima
 Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
 
 ## Changelog
+
+### v0.3.6
+- Colour world-map and minimap tooltip names using classic mob difficulty thresholds relative to your character level, including dark red for skull-level mobs.
+- For level ranges, use the highest listed mob level to show the toughest possible difficulty.
 
 ### v0.3.5
 - Keep the native minimap player arrow visible by hiding boar spawn pins while they overlap its centre. Nearby pins return as soon as they no longer overlap.
