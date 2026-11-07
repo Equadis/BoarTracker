@@ -36,6 +36,11 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 
 ## Changelog
 
+### v0.3.9
+- Place world-map boar spawn markers below the player arrow, matching the minimap.
+- Restore the 1.12 world-map player arrow's top drawing priority by adjusting its actual 3D model, not the WorldMapPlayer mouseover frame.
+- Keep all nearby boar markers visible and unchanged in position.
+
 ### v0.3.8
 - Remove the proximity exclusion that hid boar spawn pins within 18 pixels of the player.
 - Lower minimap boar pin frame levels to the bottom child level, below the higher-priority player marker, without changing their positions or visibility.

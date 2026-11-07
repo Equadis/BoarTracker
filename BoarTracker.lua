@@ -8,7 +8,7 @@ local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.8"
+BT.version = "0.3.9"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -140,10 +140,9 @@ local function makePin(parent, world)
   pin:SetWidth(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:SetHeight(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:EnableMouse(true)
-  -- Keep minimap spawn pins at the lowest child frame level instead of
-  -- putting them above the built-in player marker. World-map pins are unchanged.
+  -- Both maps keep their spawn markers below the native player marker.
   local parentLevel = (parent.GetFrameLevel and parent:GetFrameLevel() or 1)
-  pin:SetFrameLevel(parentLevel + (world and 8 or 1))
+  pin:SetFrameLevel(parentLevel + 1)
 
   local tex = pin:CreateTexture(nil, "ARTWORK")
   tex:SetAllPoints(pin)
@@ -153,6 +152,23 @@ local function makePin(parent, world)
   pin:SetScript("OnEnter", function() pinTooltip(this, world) end)
   pin:SetScript("OnLeave", function() hideTooltip(world) end)
   return pin
+end
+
+-- In WoW 1.12, the actual world-map direction arrow is an unnamed 3D Model
+-- directly under WorldMapFrame. WorldMapPlayer is only its mouseover target.
+-- Raising the Model (as Vanilla pfQuest does) fixes visual stacking without
+-- deleting, hiding or repositioning any spawn pin.
+local function keepWorldMapPlayerOnTop()
+  if not WorldMapFrame then return end
+  for _, child in pairs({ WorldMapFrame:GetChildren() }) do
+    if child:IsObjectType("Model") and not child:GetName() then
+      local model = child:GetModel()
+      if model and string.find(string.lower(model), "interface\minimap\minimaparrow", 1, true) then
+        if child:GetFrameLevel() < 255 then child:SetFrameLevel(255) end
+        return
+      end
+    end
+  end
 end
 
 function BT:BuildIndex()
@@ -215,6 +231,8 @@ end
 function BT:UpdateWorldMap()
   if not self.ready or not WorldMapFrame or not WorldMapButton then return end
   if not BoarTrackerDB.showWorld then self:HideWorldPins(); return end
+  -- Run before the layout cache can short-circuit: the client may redraw its arrow.
+  keepWorldMapPlayerOnTop()
 
   local zoneName = getMapZoneName()
   local zoneID = self:GetZoneID(zoneName)

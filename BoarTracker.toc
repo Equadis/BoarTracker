@@ -2,7 +2,7 @@
 ## Title: |cffd28b42BoarTracker|r
 ## Author: Equadis
 ## Notes: Standalone boar spawn points on the world map and minimap.
-## Version: 0.3.8
+## Version: 0.3.9
 ## SavedVariables: BoarTrackerDB
 ## SavedVariablesPerCharacter: BoarTrackerKills
 
