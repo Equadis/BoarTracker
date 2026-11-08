@@ -1,0 +1,33 @@
+name: Generate boar portrait candidates
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_boar_portraits.py'
+      - 'tools/boar-display-ids.json'
+      - '.github/workflows/boar-portrait-candidates.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image libraries
+        run: python -m pip install Pillow requests
+      - name: Download creature thumbnails and render candidate head crops
+        run: python tools/build_boar_portraits.py
+      - name: Upload review sheet and TGA candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: boar-portrait-candidates
+          path: tools/portrait-candidates/
+          if-no-files-found: error
