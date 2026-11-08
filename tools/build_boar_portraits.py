@@ -107,6 +107,10 @@ def main():
             report.append({"displayId": did, "status": url})
             continue
         try:
+            # Preserve source pixels for independent visual checks and recropping.
+            raw_dir = OUT / "sources"
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            im.save(raw_dir / f"Display_{did}.png", format="PNG")
             tile = crop_candidate(im, args.size)
             name = f"Portrait_{did}"
             tile.save(OUT / f"{name}.tga", format="TGA", compression=None)
