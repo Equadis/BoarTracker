@@ -13,9 +13,11 @@ Standalone boar spawn tracker for **WoW 1.12.1 / OctoWoW**. No pfQuest required.
 
 ![BoarTracker preview showing the spawn map, levelling tracker and kill counter](docs/BoarTracker-Preview.png)
 
-## Portrait mapping and candidate renderer
+## Portrait mapping and model-image sources
 
-All 48 boar NPC IDs are mapped to 23 creature display IDs in `BoarPortraitDisplays.lua`, with provenance in `tools/boar-display-ids.json`. Both maps select by display ID; the 389 (Stonehide/Rockhide/Forest) and 20504 (Goldbristle/Thalassian/Hightusk) portraits use actual captured game unit frames. The existing brown Stonehide portrait remains the fallback for all other displays until reviewed.
+All 48 boar NPC IDs are mapped to 23 creature display IDs in `BoarPortraitDisplays.lua`, with provenance in `tools/boar-display-ids.json`. Both maps select the correct texture by display ID. Displays 389 (Stonehide/Rockhide/Forest) and 20504 (Goldbristle/Thalassian/Hightusk) use captures from in-game unit-frame portraits. The other 21 use head-focused, circular 64×64 TGA crops of 300×300 Classic model webthumb images fetched by the same model-thumb URL selection as [Tortoise DB Viewer](https://xian55.github.io/tortoise-db-viewer/?browse=npcs).
+
+**Appearance fidelity:** Model webthumbs are full-body previews rendered from a different camera angle than the actual Vanilla 1.12 unit-frame portrait. They match their respective display model and skin but are *not* pixel-perfect replications of the unit-frame camera. See `docs/BoarPortraits-ContactSheet.png` for the review sheet.
 
 To generate **candidate** textures for the other 21 display models:
 
@@ -24,7 +26,7 @@ python -m pip install Pillow requests
 python tools/build_boar_portraits.py
 ```
 
-This fetches full-body model thumbnails using the same sources as the Tortoise DB Viewer, crops head-biased candidates as power-of-two TGA textures and outputs `tools/portrait-candidates/ContactSheet.png` for review. It does **not** produce guaranteed pixel-perfect unit-frame framing: true head portraits require rendering with the 1.12 client camera, or capturing the game's own target portraits. Review each result first, then copy selected `Portrait_ID.tga` into `Textures` and add the display ID to `BoarTrackerPortraitTextures`. New candidate textures are deliberately not auto-enabled.
+This fetches full-body model thumbnails using the same sources as the Tortoise DB Viewer, crops a centred snout-and-mane portrait as a 64×64 power-of-two TGA, and writes both original model images and `tools/portrait-candidates/ContactSheet.png` for inspection. The included map-icon assets can be refreshed using `python tools/build_boar_portraits.py --install`, which installs only if all 21 requested model sources render successfully. Exact camera-matched Vanilla unit portraits would still require capturing/rendering them in the 1.12 client.
 
 Two less-accessible NPC pages (708 and 1984) are marked as secondary-source IDs in the manifest and should be checked in the live client.
 
@@ -50,6 +52,12 @@ The on-screen tracker reports estimated boars remaining, boar XP/hour and estima
 Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
 
 ## Changelog
+
+### v0.3.12
+- Retrieve all 21 missing Classic model previews via the Tortoise DB Viewer thumbnail fallback.
+- Install individual 64×64 circular, head-focused portraits for every identified display ID; all 48 boars now map to a distinct model appearance instead of the generic brown icon.
+- Add a reference contact sheet to `docs/BoarPortraits-ContactSheet.png` and preserve 300×300 original model thumbnails in the build artifact.
+- Distinguish model-based crops from exact in-client Vanilla unit-frame portrait captures.
 
 ### v0.3.11
 - Add NPC-to-CreatureDisplayID mapping for 48 boars (23 unique display models), with source links in `tools/boar-display-ids.json`.

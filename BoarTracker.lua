@@ -20,7 +20,7 @@ local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.11"
+BT.version = "0.3.12"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}

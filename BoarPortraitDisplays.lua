@@ -53,9 +53,32 @@ BoarTrackerDisplayIDs = {
   [91987] = 503, -- Cragtusk Boar
 }
 
--- Only exact portraits we actually have are active. When additional portraits are
--- visually reviewed, add [displayID] = "Portrait_<displayID>" here.
+-- NPCs sharing a display ID share one portrait texture. Two portraits were
+-- cropped directly from in-game unit frames; the other 21 are head-biased crops
+-- from the same full-model Classic webthumb images referenced by Tortoise DB
+-- Viewer. Those approximations are not exact 1.12 unit-frame camera renders.
 BoarTrackerPortraitTextures = {
-  [389] = "BoarPortrait", -- Rockhide / Stonehide / Forest Boar model
-  [20504] = "GoldbristlePortrait", -- Goldbristle / Thalassian / Hightusk model
+  [389] = "BoarPortrait", -- Existing in-game Stonehide portrait
+  [20504] = "GoldbristlePortrait", -- Existing in-game Goldbristle portrait
+  [193] = "Portrait_193",
+  [377] = "Portrait_377",
+  [381] = "Portrait_381",
+  [503] = "Portrait_503",
+  [607] = "Portrait_607",
+  [703] = "Portrait_703",
+  [704] = "Portrait_704",
+  [744] = "Portrait_744",
+  [1208] = "Portrait_1208",
+  [2453] = "Portrait_2453",
+  [3026] = "Portrait_3026",
+  [3027] = "Portrait_3027",
+  [3035] = "Portrait_3035",
+  [4713] = "Portrait_4713",
+  [4714] = "Portrait_4714",
+  [6121] = "Portrait_6121",
+  [6807] = "Portrait_6807",
+  [8869] = "Portrait_8869",
+  [8870] = "Portrait_8870",
+  [8871] = "Portrait_8871",
+  [11410] = "Portrait_11410",
 }

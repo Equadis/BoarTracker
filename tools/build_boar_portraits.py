@@ -16,7 +16,7 @@ import io
 import json
 from pathlib import Path
 import requests
-from PIL import Image, ImageOps, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageChops
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "tools" / "boar-display-ids.json"
@@ -57,28 +57,36 @@ def read_source(display_id: int, source_dir: Path | None):
     return None, "No accessible thumbnail"
 
 
-def crop_candidate(im: Image.Image, size: int = 64):
-    """Head-biased square crop from the visible rendered creature; review required."""
+def crop_candidate(im: Image.Image, display_id: int, size: int = 64):
+    """Frame the face, snout and mane instead of only the top of the head.
+
+    This is a crop of a whole-creature model thumbnail, NOT a 1.12 unit-frame
+    camera capture. Model 11410 is the sole head-on preview.
+    """
     alpha = im.getchannel("A")
-    bbox = alpha.point(lambda x: 255 if x > 24 else 0).getbbox()
+    bbox = alpha.point(lambda x: 255 if x > 25 else 0).getbbox()
     if not bbox:
         raise ValueError("empty source")
-    l, t, r, b = bbox
-    w, h = r - l, b - t
-    # Most boar source previews face left; start near the upper-left of the
-    # bounding box and include the snout and mane. Not a unit-frame camera!
-    side = max(16, round(max(w * 0.65, h * 0.43)))
-    cx, cy = l + w * 0.35, t + h * 0.31
-    left, top = round(cx - side / 2), round(cy - side / 2)
-    # Work on a padded canvas so the crop never clips at the picture edge.
-    pad = max(im.width, im.height)
-    padded = Image.new("RGBA", (im.width + pad * 2, im.height + pad * 2))
-    padded.alpha_composite(im, (pad, pad))
-    tile = padded.crop((left + pad, top + pad, left + side + pad, top + side + pad))
-    tile = tile.resize((size, size), Image.Resampling.LANCZOS)
-    # Circular edge is transparent; sprite stays centred inside a square WoW texture.
-    mask = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(mask).ellipse((0, 0, size - 1, size - 1), fill=255)
+    left, top, right, bottom = bbox
+    w, h = right - left, bottom - top
+    if display_id == 11410:
+        side = max(16, round(max(w * 0.96, h * 0.74)))
+        cx, cy = left + w * 0.52, top + h * 0.36
+    else:
+        side = max(16, round(max(w, h * 0.88)))
+        cx, cy = left + w * 0.47, top + h * 0.44
+
+    box = (
+        round(cx - side / 2),
+        round(cy - side / 2),
+        round(cx + side / 2),
+        round(cy + side / 2),
+    )
+    tile = im.crop(box).resize((size, size), Image.Resampling.LANCZOS)
+    # Antialiased circular portrait; transparent corners for map pins.
+    mask = Image.new("L", (size * 4, size * 4), 0)
+    ImageDraw.Draw(mask).ellipse((2, 2, size * 4 - 3, size * 4 - 3), fill=255)
+    mask = mask.resize((size, size), Image.Resampling.LANCZOS)
     tile.putalpha(ImageChops.multiply(tile.getchannel("A"), mask))
     return tile
 
@@ -88,10 +96,8 @@ def main():
     parser.add_argument("--source-dir", type=Path, help="Use manually downloaded model thumbs offline")
     parser.add_argument("--size", type=int, default=64, choices=[32, 64, 128])
     parser.add_argument("--force", action="store_true", help="Also render already-approved display IDs")
+    parser.add_argument("--install", action="store_true", help="Install all 21 candidate TGA portraits after full successful export")
     args = parser.parse_args()
-    from PIL import ImageChops
-    globals()["ImageChops"] = ImageChops
-
     data = json.loads(INPUT.read_text(encoding="utf-8"))
     ids = sorted({record["displayId"] for record in data["npcs"]})
     approved = set(data["approvedPortraitDisplays"])
@@ -111,7 +117,7 @@ def main():
             raw_dir = OUT / "sources"
             raw_dir.mkdir(parents=True, exist_ok=True)
             im.save(raw_dir / f"Display_{did}.png", format="PNG")
-            tile = crop_candidate(im, args.size)
+            tile = crop_candidate(im, did, args.size)
             name = f"Portrait_{did}"
             tile.save(OUT / f"{name}.tga", format="TGA", compression=None)
             tile.resize((96, 96), Image.Resampling.NEAREST).save(OUT / f"{name}.png")
@@ -132,7 +138,21 @@ def main():
         sheet.save(OUT / "ContactSheet.png")
     (OUT / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"Processed {len(ids)} display IDs; {len(thumbs)} candidates; report at {OUT / 'report.json'}")
-    print("IMPORTANT: Inspect ContactSheet.png and compare to real target portraits before activating any candidate.")
+    if args.install:
+        expected = set(ids) - approved
+        found = {did for did, _ in thumbs}
+        if found != expected:
+            raise SystemExit(f"Refusing partial installation; missing display IDs: {sorted(expected - found)}")
+        import shutil
+        texture_dir = ROOT / "Textures"
+        texture_dir.mkdir(parents=True, exist_ok=True)
+        for did in sorted(expected):
+            shutil.copyfile(OUT / f"Portrait_{did}.tga", texture_dir / f"Portrait_{did}.tga")
+        docs = ROOT / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(OUT / "ContactSheet.png", docs / "BoarPortraits-ContactSheet.png")
+        print(f"Installed {len(expected)} model-based portraits to {texture_dir}.")
+    print("NOTICE: These are full-body-preview crops, not exact Classic unit-frame camera renders.")
 
 
 if __name__ == "__main__":
