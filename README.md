@@ -2,7 +2,7 @@
 
 Standalone boar spawn tracker for **WoW 1.12.1 / OctoWoW**. No pfQuest required.
 
-- Shows individual boar spawn points on **zone maps only** and on the **minimap**, using a compact circular boar portrait for every marker.
+- Shows individual boar spawn points on **zone maps only** and on the **minimap**, using compact circular portraits keyed by NPC ID. Goldbristle Boars use their own golden unit-frame portrait; unconfigured NPCs currently fall back to the existing Stonehide portrait.
 - Hover a marker for **name, level, NPC ID, respawn time and coordinates**.
 - Boar names in tooltips are colour-coded by difficulty relative to your level (grey, green, yellow, orange, red and dark red/skull); ranged mobs use their upper level for a safer indicator.
 - Saves boar kills by name per character and posts a chat message every 50 total kills.
@@ -35,6 +35,11 @@ The on-screen tracker reports estimated boars remaining, boar XP/hour and estima
 Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
 
 ## Changelog
+
+### v0.3.10
+- Add the authentic golden Goldbristle Boar unit-frame portrait for NPC 62121, cropped from an in-game screenshot (16×16 TGA).
+- Select a portrait per NPC ID on both maps, correctly refreshing pooled pins when the NPC type changes.
+- Keep the existing Stonehide portrait as a fallback for types without individual assets; no changes to spawn coordinates, marker sizes, or draw order.
 
 ### v0.3.9
 - Place world-map boar spawn markers below the player arrow, matching the minimap.

@@ -2,13 +2,19 @@
 -- Standalone boar spawn tracker for WoW 1.12.1 / OctoWoW.
 
 local PREFIX = "|cffd28b42BoarTracker|r: "
-local ICON = "Interface\\AddOns\\BoarTracker\\Textures\\BoarPortrait" -- Shared 16x16 TGA portrait for world-map and minimap pins.
+local ICON = "Interface\\AddOns\\BoarTracker\\Textures\\BoarPortrait" -- Fallback portrait.
+-- Map each known NPC entry to a 16x16 TGA cropped from its actual unit-frame portrait.
+-- A spawn can exist on the map without a live unit token; SetPortraitTexture("target")
+-- cannot reproduce NPC-specific portraits for offline map pins.
+local NPC_PORTRAITS = {
+  [62121] = "Interface\\AddOns\\BoarTracker\\Textures\\GoldbristlePortrait", -- Goldbristle Boar
+}
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.9"
+BT.version = "0.3.10"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -154,6 +160,16 @@ local function makePin(parent, world)
   return pin
 end
 
+-- Pin frames are pooled and reused for different spawns, so the portrait must be
+-- updated whenever the NPC ID changes on either the world map or minimap.
+local function setPinSpawn(pin, spawn)
+  pin.spawn = spawn
+  if pin.portraitID ~= spawn.id then
+    pin.texture:SetTexture(NPC_PORTRAITS[spawn.id] or ICON)
+    pin.portraitID = spawn.id
+  end
+end
+
 -- In WoW 1.12, the actual world-map direction arrow is an unnamed 3D Model
 -- directly under WorldMapFrame. WorldMapPlayer is only its mouseover target.
 -- Raising the Model (as Vanilla pfQuest does) fixes visual stacking without
@@ -254,7 +270,7 @@ function BT:UpdateWorldMap()
       pin = makePin(WorldMapButton, true)
       self.worldPins[i] = pin
     end
-    pin.spawn = spawn
+    setPinSpawn(pin, spawn)
     pin:ClearAllPoints()
     pin:SetPoint("CENTER", WorldMapButton, "TOPLEFT", spawn.x / 100 * width, -spawn.y / 100 * height)
     pin:Show()
@@ -310,7 +326,7 @@ function BT:UpdateMinimap()
         pin = makePin(Minimap, false)
         self.miniPins[i] = pin
       end
-      pin.spawn = spawn
+      setPinSpawn(pin, spawn)
       pin:ClearAllPoints()
       pin:SetPoint("CENTER", Minimap, "CENTER", xPos, -yPos)
       pin:Show()
