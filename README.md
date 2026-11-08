@@ -13,6 +13,21 @@ Standalone boar spawn tracker for **WoW 1.12.1 / OctoWoW**. No pfQuest required.
 
 ![BoarTracker preview showing the spawn map, levelling tracker and kill counter](docs/BoarTracker-Preview.png)
 
+## Portrait mapping and candidate renderer
+
+All 48 boar NPC IDs are mapped to 23 creature display IDs in `BoarPortraitDisplays.lua`, with provenance in `tools/boar-display-ids.json`. Both maps select by display ID; the 389 (Stonehide/Rockhide/Forest) and 20504 (Goldbristle/Thalassian/Hightusk) portraits use actual captured game unit frames. The existing brown Stonehide portrait remains the fallback for all other displays until reviewed.
+
+To generate **candidate** textures for the other 21 display models:
+
+```sh
+python -m pip install Pillow requests
+python tools/build_boar_portraits.py
+```
+
+This fetches full-body model thumbnails using the same sources as the Tortoise DB Viewer, crops head-biased candidates as power-of-two TGA textures and outputs `tools/portrait-candidates/ContactSheet.png` for review. It does **not** produce guaranteed pixel-perfect unit-frame framing: true head portraits require rendering with the 1.12 client camera, or capturing the game's own target portraits. Review each result first, then copy selected `Portrait_ID.tga` into `Textures` and add the display ID to `BoarTrackerPortraitTextures`. New candidate textures are deliberately not auto-enabled.
+
+Two less-accessible NPC pages (708 and 1984) are marked as secondary-source IDs in the manifest and should be checked in the live client.
+
 ## Install
 
 Place the repository folder at:
@@ -35,6 +50,12 @@ The on-screen tracker reports estimated boars remaining, boar XP/hour and estima
 Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT licence; the addon has no runtime dependency on pfQuest.
 
 ## Changelog
+
+### v0.3.11
+- Add NPC-to-CreatureDisplayID mapping for 48 boars (23 unique display models), with source links in `tools/boar-display-ids.json`.
+- Share the existing genuine game-unit portraits across every NPC using display 389 (grey/brown) or 20504 (golden), including all Goldbristle variants.
+- Include a candidate portrait exporter (`tools/build_boar_portraits.py`) that uses Tortoise DB Viewer model thumbnails, Wowhead Classic and OctoWoW model images, plus a contact sheet for visual review.
+- Do not automatically ship full-body thumbnail crops as authentic unit-frame head portraits. Other display variants retain the existing fallback until individually approved.
 
 ### v0.3.10
 - Add the authentic golden Goldbristle Boar unit-frame portrait for NPC 62121, cropped from an in-game screenshot (16×16 TGA).

@@ -6,15 +6,21 @@ local ICON = "Interface\\AddOns\\BoarTracker\\Textures\\BoarPortrait" -- Fallbac
 -- Map each known NPC entry to a 16x16 TGA cropped from its actual unit-frame portrait.
 -- A spawn can exist on the map without a live unit token; SetPortraitTexture("target")
 -- cannot reproduce NPC-specific portraits for offline map pins.
-local NPC_PORTRAITS = {
-  [62121] = "Interface\\AddOns\\BoarTracker\\Textures\\GoldbristlePortrait", -- Goldbristle Boar
-}
+-- NPC IDs -> CreatureDisplayID mappings load from BoarPortraitDisplays.lua.
+-- Only approved unit-frame portrait textures are used; missing variants retain
+-- the existing fallback rather than an unrelated model preview.
+local function portraitTextureForNPC(npcID)
+  local displayID = BoarTrackerDisplayIDs and BoarTrackerDisplayIDs[npcID]
+  local filename = displayID and BoarTrackerPortraitTextures and BoarTrackerPortraitTextures[displayID]
+  return filename and ("Interface\\AddOns\\BoarTracker\\Textures\\" .. filename) or ICON
+end
+
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.10"
+BT.version = "0.3.11"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -165,7 +171,7 @@ end
 local function setPinSpawn(pin, spawn)
   pin.spawn = spawn
   if pin.portraitID ~= spawn.id then
-    pin.texture:SetTexture(NPC_PORTRAITS[spawn.id] or ICON)
+    pin.texture:SetTexture(portraitTextureForNPC(spawn.id))
     pin.portraitID = spawn.id
   end
 end

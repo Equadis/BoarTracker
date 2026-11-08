@@ -1,0 +1,347 @@
+{
+  "source": "OctoWoW DB NPC pages, cross-checked with Tortoise DB Viewer model thumbnail scheme",
+  "created": "2026-11-08",
+  "notes": "NPC IDs 708 and 1984 use secondary sources, requiring OctoWoW client confirmation; each NPC may have multiple displays in-game. A single primary display is taken from its database page.",
+  "npcs": [
+    {
+      "npcId": 113,
+      "name": "Stonetusk Boar",
+      "displayId": 503,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=113"
+    },
+    {
+      "npcId": 119,
+      "name": "Longsnout",
+      "displayId": 381,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=119"
+    },
+    {
+      "npcId": 157,
+      "name": "Goretusk",
+      "displayId": 3027,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=157"
+    },
+    {
+      "npcId": 330,
+      "name": "Princess",
+      "displayId": 8871,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=330"
+    },
+    {
+      "npcId": 345,
+      "name": "Bellygrub",
+      "displayId": 703,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=345"
+    },
+    {
+      "npcId": 390,
+      "name": "Porcine Entourage",
+      "displayId": 377,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=390"
+    },
+    {
+      "npcId": 454,
+      "name": "Young Goretusk",
+      "displayId": 8871,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=454"
+    },
+    {
+      "npcId": 524,
+      "name": "Rockhide Boar",
+      "displayId": 389,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=524"
+    },
+    {
+      "npcId": 547,
+      "name": "Great Goretusk",
+      "displayId": 3035,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=547"
+    },
+    {
+      "npcId": 708,
+      "name": "Small Crag Boar",
+      "displayId": 607,
+      "source": "Alpha Project database",
+      "url": "https://db.thealphaproject.eu/?action=show_creature&id=708"
+    },
+    {
+      "npcId": 1125,
+      "name": "Crag Boar",
+      "displayId": 607,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1125"
+    },
+    {
+      "npcId": 1126,
+      "name": "Large Crag Boar",
+      "displayId": 381,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1126"
+    },
+    {
+      "npcId": 1127,
+      "name": "Elder Crag Boar",
+      "displayId": 744,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1127"
+    },
+    {
+      "npcId": 1190,
+      "name": "Mountain Boar",
+      "displayId": 704,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1190"
+    },
+    {
+      "npcId": 1191,
+      "name": "Mangy Mountain Boar",
+      "displayId": 3027,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1191"
+    },
+    {
+      "npcId": 1192,
+      "name": "Elder Mountain Boar",
+      "displayId": 1208,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1192"
+    },
+    {
+      "npcId": 1689,
+      "name": "Scarred Crag Boar",
+      "displayId": 193,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1689"
+    },
+    {
+      "npcId": 1984,
+      "name": "Young Thistle Boar",
+      "displayId": 8869,
+      "source": "Capy DB",
+      "url": "https://db.capycraft.org/npc/1984"
+    },
+    {
+      "npcId": 1985,
+      "name": "Thistle Boar",
+      "displayId": 6807,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=1985"
+    },
+    {
+      "npcId": 2954,
+      "name": "Bristleback Battleboar",
+      "displayId": 6807,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=2954"
+    },
+    {
+      "npcId": 2966,
+      "name": "Battleboar",
+      "displayId": 8869,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=2966"
+    },
+    {
+      "npcId": 3098,
+      "name": "Mottled Boar",
+      "displayId": 503,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=3098"
+    },
+    {
+      "npcId": 3099,
+      "name": "Dire Mottled Boar",
+      "displayId": 381,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=3099"
+    },
+    {
+      "npcId": 3100,
+      "name": "Elder Mottled Boar",
+      "displayId": 193,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=3100"
+    },
+    {
+      "npcId": 3225,
+      "name": "Corrupted Mottled Boar",
+      "displayId": 744,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=3225"
+    },
+    {
+      "npcId": 4511,
+      "name": "Agam'ar",
+      "displayId": 4713,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=4511"
+    },
+    {
+      "npcId": 4512,
+      "name": "Rotting Agam'ar",
+      "displayId": 4714,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=4512"
+    },
+    {
+      "npcId": 4514,
+      "name": "Raging Agam'ar",
+      "displayId": 2453,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=4514"
+    },
+    {
+      "npcId": 5992,
+      "name": "Ashmane Boar",
+      "displayId": 3026,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=5992"
+    },
+    {
+      "npcId": 5993,
+      "name": "Helboar",
+      "displayId": 11410,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=5993"
+    },
+    {
+      "npcId": 7333,
+      "name": "Withered Battle Boar",
+      "displayId": 6121,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=7333"
+    },
+    {
+      "npcId": 8303,
+      "name": "Grunter",
+      "displayId": 8870,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=8303"
+    },
+    {
+      "npcId": 16117,
+      "name": "Plagued Swine",
+      "displayId": 6121,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=16117"
+    },
+    {
+      "npcId": 60848,
+      "name": "Bristleback Boar",
+      "displayId": 3027,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=60848"
+    },
+    {
+      "npcId": 60980,
+      "name": "Bramblethorn Boar",
+      "displayId": 3027,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=60980"
+    },
+    {
+      "npcId": 61689,
+      "name": "Young Thalassian Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=61689"
+    },
+    {
+      "npcId": 61692,
+      "name": "Thalassian Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=61692"
+    },
+    {
+      "npcId": 61696,
+      "name": "Elder Thalassian Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=61696"
+    },
+    {
+      "npcId": 61975,
+      "name": "Hightusk Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=61975"
+    },
+    {
+      "npcId": 62121,
+      "name": "Goldbristle Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62121"
+    },
+    {
+      "npcId": 62122,
+      "name": "Burly Goldbristle Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62122"
+    },
+    {
+      "npcId": 62226,
+      "name": "Stonehide Boar",
+      "displayId": 389,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62226"
+    },
+    {
+      "npcId": 62227,
+      "name": "Elder Stonehide Boar",
+      "displayId": 389,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62227"
+    },
+    {
+      "npcId": 62260,
+      "name": "Forest Boar",
+      "displayId": 389,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62260"
+    },
+    {
+      "npcId": 62261,
+      "name": "Elder Forest Boar",
+      "displayId": 389,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62261"
+    },
+    {
+      "npcId": 62262,
+      "name": "Mesa Boar",
+      "displayId": 6807,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62262"
+    },
+    {
+      "npcId": 62271,
+      "name": "Young Goldbristle Boar",
+      "displayId": 20504,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=62271"
+    },
+    {
+      "npcId": 91987,
+      "name": "Cragtusk Boar",
+      "displayId": 503,
+      "source": "OctoWoW DB",
+      "url": "https://octowow.st/db/?npc=91987"
+    }
+  ],
+  "approvedPortraitDisplays": [
+    389,
+    20504
+  ]
+}
