@@ -17,10 +17,13 @@ end
 
 local PIN_SIZE = 13
 local MINI_PIN_SIZE = 12
+local KILL_MATCH_RADIUS = 65
+local activeRespawns = {}
+local nextRespawnUpdate = 0
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.12"
+BT.version = "0.3.13"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -149,6 +152,7 @@ end
 
 local function makePin(parent, world)
   local pin = CreateFrame("Button", nil, parent)
+  pin.spawnSlot = world and "worldPin" or "miniPin"
   pin:SetWidth(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:SetHeight(world and PIN_SIZE or MINI_PIN_SIZE)
   pin:EnableMouse(true)
@@ -166,14 +170,58 @@ local function makePin(parent, world)
   return pin
 end
 
+local function updatePinRespawn(pin, now)
+  local deadline = activeRespawns[pin.spawn]
+  local left = deadline and math.max(0, math.ceil(deadline - now)) or 0
+  if (pin.respawnLeft or 0) == left then return end
+  local wasCounting = (pin.respawnLeft or 0) > 0
+  pin.respawnLeft = left
+
+  if not pin.countdown then
+    local label = pin:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("CENTER", pin, "CENTER")
+    label:SetFont(STANDARD_TEXT_FONT, 10, "OUTLINE")
+    pin.countdown = label
+  end
+
+  if wasCounting ~= (left > 0) then
+    if pin.texture.SetDesaturated then pin.texture:SetDesaturated(left > 0 and 1 or nil) end
+    local shade = left > 0 and .65 or 1
+    pin.texture:SetVertexColor(shade, shade, shade)
+  end
+
+  if left > 0 then
+    pin.countdown:SetText(string.format("%d:%02d", math.floor(left / 60), math.mod(left, 60)))
+    pin.countdown:Show()
+  else
+    pin.countdown:Hide()
+  end
+end
+
+local function updateSpawnPins(spawn, now)
+  if spawn.worldPin then updatePinRespawn(spawn.worldPin, now) end
+  if spawn.miniPin then updatePinRespawn(spawn.miniPin, now) end
+end
+
 -- Pin frames are pooled and reused for different spawns, so the portrait must be
 -- updated whenever the NPC ID changes on either the world map or minimap.
 local function setPinSpawn(pin, spawn)
+  if pin.spawn == spawn and spawn[pin.spawnSlot] == pin then return end
+  -- During a relayout, a spawn can move to another pin before this pin is reused.
+  if pin.spawn and pin.spawn[pin.spawnSlot] == pin then
+    pin.spawn[pin.spawnSlot] = nil
+  end
   pin.spawn = spawn
+  spawn[pin.spawnSlot] = pin
   if pin.portraitID ~= spawn.id then
     pin.texture:SetTexture(portraitTextureForNPC(spawn.id))
     pin.portraitID = spawn.id
+    pin.respawnLeft = nil
+    if pin.texture.SetDesaturated then pin.texture:SetDesaturated(nil) end
+    pin.texture:SetVertexColor(1, 1, 1)
+    if pin.countdown then pin.countdown:Hide() end
   end
+  updatePinRespawn(pin, GetTime())
 end
 
 -- In WoW 1.12, the actual world-map direction arrow is an unnamed 3D Model
@@ -231,6 +279,42 @@ end
 
 function BT:GetZoneID(name)
   return name and self.zoneByName[name] or nil
+end
+
+local function startRespawn(boarName)
+  local zoneName = getRealZoneName()
+  local zoneID = BT:GetZoneID(zoneName)
+  local spawns = zoneID and BT.zoneSpawns[zoneID]
+  local zone = zoneID and BoarTrackerData.zones[zoneID]
+  if not spawns or not zone.width or not zone.height or zone.width <= 0 or zone.height <= 0 then return end
+
+  -- Player coordinates are relative to the selected world map in Vanilla.
+  if getMapZoneName() ~= zoneName then
+    if not SetMapToCurrentZone or (WorldMapFrame and WorldMapFrame:IsVisible()) then return end
+    SetMapToCurrentZone()
+    if getMapZoneName() ~= zoneName then return end
+  end
+  local x, y = GetPlayerMapPosition("player")
+  if not x or not y or (x == 0 and y == 0) then return end
+
+  local now = GetTime()
+  local nearest
+  local bestDistance = KILL_MATCH_RADIUS * KILL_MATCH_RADIUS
+  for _, spawn in ipairs(spawns) do
+    if spawn.name == boarName and spawn.respawn > 0 and (activeRespawns[spawn] or 0) <= now then
+      local dx = (spawn.x / 100 - x) * zone.width
+      local dy = (spawn.y / 100 - y) * zone.height
+      local distance = dx * dx + dy * dy
+      if distance < bestDistance then
+        nearest, bestDistance = spawn, distance
+      end
+    end
+  end
+
+  if nearest then
+    activeRespawns[nearest] = now + nearest.respawn
+    updateSpawnPins(nearest, now)
+  end
 end
 
 function BT:HideWorldPins(from)
@@ -496,6 +580,8 @@ function BT:RecordKill(message)
   local boar = self.boarNames[key]
   if not boar then return end
 
+  startRespawn(boar)
+
   local db = BoarTrackerKills
   local count = (db.byName[key] or 0) + 1
   db.byName[key] = count
@@ -619,6 +705,13 @@ end)
 frame:SetScript("OnUpdate", function()
   if not BT.ready then return end
   local now = GetTime()
+  if next(activeRespawns) and now >= nextRespawnUpdate then
+    nextRespawnUpdate = now + 0.1
+    for spawn, deadline in pairs(activeRespawns) do
+      if deadline <= now then activeRespawns[spawn] = nil end
+      updateSpawnPins(spawn, now)
+    end
+  end
   if UnitAffectingCombat("player") then
     lastCombatTime = now
   elseif resetIdleRate(now) then
