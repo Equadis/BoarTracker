@@ -54,6 +54,9 @@ Spawn data is derived from pfQuest/pfQuest-turtle database data under its MIT li
 
 ## Changelog
 
+### v0.3.14
+- Match kills to spawn pins using the position captured when combat starts. Use the targeted boar's position when available, otherwise use the player's position at the pull. If combat-start coordinates were unavailable, use the player's position at the kill.
+
 ### v0.3.13
 - Add per-spawn respawn countdowns to the world map and minimap. The Vanilla kill log gives the boar's name, so the addon estimates the spawn from the nearest available matching pin within 65 yards of the player. Timers last for the current session.
 

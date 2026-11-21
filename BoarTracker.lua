@@ -20,10 +20,12 @@ local MINI_PIN_SIZE = 12
 local KILL_MATCH_RADIUS = 65
 local activeRespawns = {}
 local nextRespawnUpdate = 0
+local combatStart
+local combatEndedAt
 
 BoarTracker = BoarTracker or {}
 local BT = BoarTracker
-BT.version = "0.3.13"
+BT.version = "0.3.14"
 BT.worldPins = {}
 BT.miniPins = {}
 BT.zoneByName = {}
@@ -281,23 +283,55 @@ function BT:GetZoneID(name)
   return name and self.zoneByName[name] or nil
 end
 
-local function startRespawn(boarName)
+local function mapPosition(unit)
+  local x, y = GetPlayerMapPosition(unit)
+  if x and y and (x ~= 0 or y ~= 0) then return x, y end
+end
+
+local function respawnOrigin()
   local zoneName = getRealZoneName()
   local zoneID = BT:GetZoneID(zoneName)
-  local spawns = zoneID and BT.zoneSpawns[zoneID]
-  local zone = zoneID and BoarTrackerData.zones[zoneID]
-  if not spawns or not zone.width or not zone.height or zone.width <= 0 or zone.height <= 0 then return end
+  if not zoneID then return end
 
-  -- Player coordinates are relative to the selected world map in Vanilla.
+  -- Coordinates are relative to the selected world map in Vanilla.
   if getMapZoneName() ~= zoneName then
     if not SetMapToCurrentZone or (WorldMapFrame and WorldMapFrame:IsVisible()) then return end
     SetMapToCurrentZone()
     if getMapZoneName() ~= zoneName then return end
   end
-  local x, y = GetPlayerMapPosition("player")
-  if not x or not y or (x == 0 and y == 0) then return end
+  local x, y = mapPosition("player")
+  if x then return { zone = zoneID, x = x, y = y } end
+end
 
+local function captureCombatStart()
+  combatEndedAt = nil
+  combatStart = respawnOrigin()
+  if not combatStart or UnitIsPlayer("target") or UnitIsDead("target") then return end
+  local name = UnitName("target")
+  local boar = name and BT.boarNames[string.lower(name)]
+  if not boar then return end
+  local x, y = mapPosition("target")
+  if x then
+    combatStart.targetName = boar
+    combatStart.targetX, combatStart.targetY = x, y
+  end
+end
+
+local function startRespawn(boarName)
   local now = GetTime()
+  local origin = combatStart
+  -- The final kill message can arrive just after the player leaves combat.
+  if not origin or (combatEndedAt and now - combatEndedAt > 1) then
+    origin = respawnOrigin()
+  end
+  if not origin then return end
+
+  local spawns = BT.zoneSpawns[origin.zone]
+  local zone = BoarTrackerData.zones[origin.zone]
+  if not spawns or not zone.width or not zone.height or zone.width <= 0 or zone.height <= 0 then return end
+  local x, y = origin.x, origin.y
+  if origin.targetName == boarName then x, y = origin.targetX, origin.targetY end
+
   local nearest
   local bestDistance = KILL_MATCH_RADIUS * KILL_MATCH_RADIUS
   for _, spawn in ipairs(spawns) do
@@ -660,6 +694,11 @@ frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:SetScript("OnEvent", function()
   if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
     local now = GetTime()
+    if event == "PLAYER_REGEN_DISABLED" then
+      if BT.ready then captureCombatStart() end
+    else
+      combatEndedAt = now
+    end
     -- Check the old gap before new combat can overwrite its timestamp.
     local reset = resetIdleRate(now)
     lastCombatTime = now
@@ -682,6 +721,9 @@ frame:SetScript("OnEvent", function()
     return
   end
   if probingZoom then return end
+  if event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+    combatStart, combatEndedAt = nil, nil
+  end
   if event == "PLAYER_ENTERING_WORLD" and not BT.ready then
     BoarTrackerDB = BoarTrackerDB or {}
     if BoarTrackerDB.showWorld == nil then BoarTrackerDB.showWorld = true end
